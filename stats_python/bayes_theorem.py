@@ -45,7 +45,7 @@ def is_user_drug_user(threshold=0.5, sensitivity=0.97, specificity=0.95, prevela
     p_non_user = 1 - prevelance_drug_user_in_population
     p_pos_user = sensitivity  # p(user=drug_user | test +ve)
     p_neg_user = specificity
-    p_pos_non_user = 1 - specificity  # p(user=drug_user | test ive)
+    p_pos_non_user = 1 - specificity  # p(user=drug_user | test -ve)
 
     num = p_pos_user * p_user
     den = p_pos_user * p_user + p_pos_non_user * p_non_user
@@ -61,6 +61,7 @@ def is_user_drug_user(threshold=0.5, sensitivity=0.97, specificity=0.95, prevela
     return prob
 
 if __name__ == '__main__':
+
     probability_drug_user = is_user_drug_user(threshold=0.5,
                                               sensitivity=0.97,
                                               specificity=0.95,
@@ -70,18 +71,29 @@ if __name__ == '__main__':
 
     print("\n=======")
     print("Bayesian inference: Ability to use prior knowledge to update beliefs about parameters")
+    print("The probability from the first test becomes the Prior for the second test")
+    print("=======\n")
+
     p1 = is_user_drug_user(threshold=0.5,sensitivity=0.97,specificity=0.95,prevelance_drug_user_in_population=0.005)
     print("Probability of the test-taker being a drug user, in the first round of test, is:",round(p1,3))
+    print("Even with a test that is 97% correct for catching positive cases, and 95% correct "
+          "for rejecting negative cases, the true probability of being a drug-user with a "
+          "positive result is only 8.9%! The number of false positives outweighs the number"
+          "of true positives.")
     print("-------")
+
     p2 = is_user_drug_user(threshold=0.5,sensitivity=0.97,specificity=0.95,prevelance_drug_user_in_population=p1)
     print("Probability of the test-taker being a drug user, in the second round of test, is:",round(p2,3))
     print("-------")
+
     p3 = is_user_drug_user(threshold=0.5,sensitivity=0.97,specificity=0.95,prevelance_drug_user_in_population=p2)
     print("Probability of the test-taker being a drug user, in the third round of test, is:",round(p3,3))
-    print("=======")
-    print("With three consecutive tests, we are 97.3% confident about catching a true drug user, with the same test "
-          "capabilities.")
+    print("With three consecutive tests, we are 97.3% confident about catching a true drug user, "
+          "with the same test capabilities.")
 
+    plt.figure(figsize=(24, 10))
+
+    # Prevalence rate of disease with probability of the user being a drug user
     ps = []
     pres = []
     for pre in [i*0.001 for i in range(1, 51, 2)]:
@@ -92,14 +104,52 @@ if __name__ == '__main__':
                               prevelance_drug_user_in_population=pre,
                               verbose=False)
         ps.append(p)
-
-    plt.figure(figsize=(10,5))
-    plt.title("Probability of user with prevalence rate",fontsize=15)
+    plt.subplot(1,3,1)
+    plt.title("Probability of drug user v/s prevalence rate",fontsize=15)
     plt.plot(pres, ps, color='k', marker='o', markersize=8)
     plt.grid(True)
-    plt.xlabel("Prevelance (percentage)",fontsize=14)
-    plt.ylabel("Probability of being an user",fontsize=14)
-    plt.xticks([i*0.25 for i in range(1,21)],fontsize=12,rotation=45)
+    plt.xlabel("Prevalence (percentage)",fontsize=14)
+    plt.ylabel("Probability of being a +ve drug user",fontsize=14)
     plt.yticks(fontsize=12)
+
+    # Specificity of test vs probability of the user being a drug user
+    ps = []
+    specificty = []
+    for sp in [i*0.001+0.95 for i in range(1,50,2)]:
+        specificty.append(sp*100)
+        p = is_user_drug_user(threshold=0.5,
+                              sensitivity=0.97,
+                              specificity=sp,
+                              prevelance_drug_user_in_population=0.005,
+                              verbose=False)
+        ps.append(p)
+    plt.subplot(1,3,2)
+    plt.title("Probability of drug user v/s specificity of test",fontsize=15)
+    plt.plot(specificty, ps, color='g', marker='o', markersize=8)
+    plt.grid(True)
+    plt.xlabel("Specificity (percentage)",fontsize=14)
+    plt.ylabel("Probability of being a +ve drug user",fontsize=14)
+    plt.yticks(fontsize=12)
+
+    # Specificity of test vs probability of the user being a drug user
+    ps = []
+    sensitivity = []
+    for sn in [i*0.001+0.95 for i in range(1,50,2)]:
+        sensitivity.append(sn * 100)
+        p = is_user_drug_user(threshold=0.5,
+                              sensitivity=sn,
+                              specificity=0.95,
+                              prevelance_drug_user_in_population=0.005,
+                              verbose=False)
+        ps.append(p)
+    plt.subplot(1,3,3)
+    plt.title("Probability of drug user v/s sensitivity of test",fontsize=15)
+    plt.plot(sensitivity, ps, color='b', marker='o', markersize=8)
+    plt.grid(True)
+    plt.xlabel("sensitivity (percentage)",fontsize=14)
+    plt.ylabel("Probability of being a +ve drug user",fontsize=14)
+    plt.yticks(fontsize=12)
+
+    plt.suptitle("Drug Screening Example : Why Tests should focus on specificity -")
     plt.savefig(f"{output_directory}/drug_user_ex_bayes.png")
     plt.close()
